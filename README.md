@@ -1,4 +1,4 @@
-# TeenLyrics: Multi-Label Explicit Content Detection with Age-Based Rating
+# LyricLens: Multi-Label Explicit Content Detection with Age-Based Rating
 This repository contains a complete pipeline for multi-label explicit content detection in music lyrics, culminating in an automatic MCR rating with content descriptors.
 
 ## Overview
