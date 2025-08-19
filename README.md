@@ -16,3 +16,5 @@ We developed a deep learning model that detects multiple explicit content catego
 | **M-AO** (Adults Only) | Suitable only for adults 18+; may contain graphic sexual content, extreme violence, or glorified drug use. |
 
 ## Usage
+The pre-trained model can be downloaded from the following link:
+[Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
