@@ -7,6 +7,7 @@ import torch
 import os
 import warnings
 import random
+import argparse
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import time
@@ -141,26 +142,85 @@ class LongformerPreprocessor:
         merged = re.sub(r"[^a-zA-Z\s]", "", merged)
         return re.sub(r"\s+", " ", merged).strip()
 
+def parse_arguments():
+    """Parse command-line arguments for model path configuration."""
+    parser = argparse.ArgumentParser(description='LyricLens - AI-Powered Lyric Content Assessment')
+    parser.add_argument(
+        '--model-path', 
+        type=str, 
+        default=None,
+        help='Path to the model checkpoint directory'
+    )
+    parser.add_argument(
+        '--port', 
+        type=int, 
+        default=8501,
+        help='Port for Streamlit server'
+    )
+    parser.add_argument(
+        '--host', 
+        type=str, 
+        default='localhost',
+        help='Host for Streamlit server'
+    )
+    
+    # For Streamlit, we need to handle the case where sys.argv might contain Streamlit-specific args
+    import sys
+    
+    # Filter out Streamlit arguments that might interfere
+    filtered_argv = []
+    skip_next = False
+    
+    for i, arg in enumerate(sys.argv):
+        if skip_next:
+            skip_next = False
+            continue
+            
+        # Skip Streamlit-specific arguments
+        if arg.startswith('--server.') or arg.startswith('--global.') or arg.startswith('--logger.'):
+            if '=' not in arg and i + 1 < len(sys.argv):
+                skip_next = True
+            continue
+        
+        # Skip the script name if it contains 'streamlit'
+        if i == 0 and ('streamlit' in arg or 'run' in arg):
+            continue
+            
+        filtered_argv.append(arg)
+    
+    # If no model path arguments found, return defaults
+    if not any('--model-path' in arg for arg in filtered_argv):
+        return argparse.Namespace(
+            model_path=None,
+            port=8501,
+            host='localhost'
+        )
+    
+    # Parse the filtered arguments
+    args = parser.parse_args(filtered_argv[1:] if filtered_argv else [])
+    return args
+
 @st.cache_resource
 def load_longformer_model():
     try:
         if not TRANSFORMERS_AVAILABLE:
             return None, None, None
         
-        # Update these paths to your actual file locations
-        # Option 1: Use forward slashes (works on Windows too)
-        base_path = "C:/Users/malha/Desktop/kids-safe-music-INTEGRATED/checkpoint-3588"
+        # Parse command-line arguments
+        args = parse_arguments()
         
-        # Option 2: Use raw strings (uncomment if you prefer backslashes)
-        # base_path = r"C:\Users\malha\Desktop\kids-safe-music-LATEST\checkpoint-3588"
+        # Determine the model path
+        if args.model_path:
+            # Use user-specified path
+            base_path = os.path.abspath(args.model_path)
+        else:
+            # Use relative path from the script directory (default)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.join(script_dir, "checkpoint-3588")
         
-        # Option 3: Use os.path.join (most robust)
-        # import os
-        # base_path = os.path.join("C:", "Users", "malha", "Desktop", "kids-safe-music-LATEST", "checkpoint-3588")
-        
-        model_path = f"{base_path}/model.safetensors"  # Path to your safetensors file
-        config_path = f"{base_path}/config.json"      # Path to your config file
-        tokenizer_path = base_path                     # Directory containing tokenizer files
+        model_path = os.path.join(base_path, "model.safetensors")  # Path to your safetensors file
+        config_path = os.path.join(base_path, "config.json")      # Path to your config file
+        tokenizer_path = base_path                                 # Directory containing tokenizer files
         
         # Check if required files exist
         if not os.path.exists(model_path):
@@ -456,6 +516,9 @@ def display_results(results):
 
 # Main application
 def main():
+    # Parse arguments for configuration info
+    args = parse_arguments()
+    
     # Conference-ready header
     st.markdown("""
     <div class="flex center-y justify-between" style="margin-bottom:18px;">
@@ -466,6 +529,26 @@ def main():
         <div style="text-align:right; font-size:.55rem; color:var(--text-secondary); letter-spacing:.5px;">Conference Demo • 2025 Edition</div>
     </div>
     """, unsafe_allow_html=True)
+
+    # Show configuration info in sidebar
+    with st.sidebar:
+        st.markdown("### Configuration")
+        if args.model_path:
+            st.info(f"🎯 Custom model path: `{args.model_path}`")
+        else:
+            st.info("🎯 Using default model path: `./checkpoint-3588`")
+        
+        st.markdown("### Command Line Usage")
+        st.code("""
+# Default usage
+streamlit run app.py
+
+# Custom model path
+streamlit run app.py -- --model-path /path/to/model
+
+# Custom model path + port
+streamlit run app.py -- --model-path /path/to/model --port 8502
+        """, language="bash")
 
     longformer_tokenizer, longformer_model, longformer_preprocessor = load_longformer_model()
 
@@ -537,4 +620,39 @@ def main():
     st.markdown("<div class='footer-line'>© 2025 LyricLens • Advanced music content analysis platform</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    main()
+    # Check if we're running via streamlit or directly
+    import sys
+    
+    if 'streamlit' in sys.modules or any('streamlit' in arg for arg in sys.argv):
+        # Running via Streamlit
+        main()
+    else:
+        # Running directly with Python - show help and start Streamlit
+        args = parse_arguments()
+        
+        print("🎵 LyricLens - AI-Powered Lyric Content Assessment")
+        print("=" * 50)
+        print(f"Model path: {args.model_path or './checkpoint-3588'}")
+        print(f"Host: {args.host}")
+        print(f"Port: {args.port}")
+        print()
+        print("Starting Streamlit server...")
+        
+        # Construct streamlit command
+        import subprocess
+        cmd = [
+            'streamlit', 'run', __file__,
+            '--server.port', str(args.port),
+            '--server.address', args.host
+        ]
+        
+        if args.model_path:
+            cmd.extend(['--', '--model-path', args.model_path])
+            
+        try:
+            subprocess.run(cmd)
+        except KeyboardInterrupt:
+            print("\n👋 LyricLens stopped.")
+        except FileNotFoundError:
+            print("❌ Streamlit not found. Please install it: pip install streamlit")
+            print("Then run: streamlit run app.py")
