@@ -82,24 +82,31 @@ Create a `model/` directory and add the following files:
 - `merges.txt` (BPE merges)
 - `special_tokens_map.json` (Special tokens)
 
-### Step 4: Launch Application
+
+### Step 4: Launch the application
+
+By default the app will start on http://localhost:8501.  
+
+**Default launch (auto-detects model):**
+
 ```bash
-# Default launch (auto-detects model in ./model or ./checkpoint-3588)
 streamlit run app.py
-
-# Launch with a custom model path
-streamlit run app.py -- --model-path /path/to/your/model
-
-# Launch on a different port
-streamlit run app.py -- --port 8502
-
-# Launch with custom model path and port
-streamlit run app.py -- --model-path ./model --port 8502
 ```
 
-The application will be accessible at `http://localhost:8501` by default.
-A model checkpoint is required. If --model-path is not provided, the app will search in common folders (./model, ./checkpoint-3588, ./models, ./checkpoint).
+Launch with a custom model path:
+```bash
+streamlit run app.py -- --model-path /path/to/your/model
+```
 
+Launch on a different port:
+```bash
+streamlit run app.py -- --port 8502
+```
+
+Launch with both custom model path and port:
+```bash
+streamlit run app.py -- --model-path ./model --port 8502
+```
 
 ## Project Structure
 
