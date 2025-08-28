@@ -3,18 +3,14 @@ import pandas as pd
 import numpy as np
 import re
 import nltk
-import joblib
 import torch
 import os
 import warnings
 import random
-from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import matplotlib.pyplot as plt
 import time
 
-# Set page configuration FIRST
 st.set_page_config(
     page_title="LyricLens",
     page_icon="🎵",
@@ -22,10 +18,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Import MCR system
 from music_content_rating import MusicContentRatingSystem
 
-# Import transformer components
 TRANSFORMERS_AVAILABLE = True
 _transformers_warning = None
 try:
@@ -34,11 +28,9 @@ try:
 except ImportError:
     _transformers_warning = "Transformers library not available. Running in demo mode."
 
-# Filter NumPy-related warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-# Download necessary NLTK resources
 try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('corpora/stopwords')
@@ -50,11 +42,9 @@ except LookupError:
     nltk.download('wordnet')
     nltk.download('averaged_perceptron_tagger')
 
-# Show transformers warning after page config
 if _transformers_warning:
     st.warning(_transformers_warning)
 
-# Apply conference-ready compact theme
 st.markdown("""
 <style>
     :root {
@@ -105,28 +95,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Define MultiLabelXGBoostClassifier class for loading the XGBoost model
-class MultiLabelXGBoostClassifier:
-    def __init__(self, models):
-        self.models = models
-        
-    def predict(self, X):
-        predictions = np.zeros((X.shape[0], len(self.models)))
-        
-        for i, model in enumerate(self.models):
-            predictions[:, i] = model.predict(X)
-            
-        return predictions
-    
-    def predict_proba(self, X):
-        probabilities = np.zeros((X.shape[0], len(self.models), 2))
-        
-        for i, model in enumerate(self.models):
-            probabilities[:, i, :] = model.predict_proba(X)
-            
-        return probabilities
-
-# Longformer preprocessing functions
 class LongformerPreprocessor:
     def __init__(self):
         self.lemmatizer = nltk.stem.WordNetLemmatizer()
@@ -172,55 +140,6 @@ class LongformerPreprocessor:
         merged = " ".join(cleaned)
         merged = re.sub(r"[^a-zA-Z\s]", "", merged)
         return re.sub(r"\s+", " ", merged).strip()
-
-# Load models
-@st.cache_resource
-def load_xgboost_models():
-    try:
-        # Try loading enhanced models first
-        enhanced_vectorizer_path = 'enhanced_tfidf_vectorizer.pkl'
-        enhanced_model_path = 'enhanced_xgboost_model.pkl'
-        
-        # Fallback to original models
-        original_vectorizer_path = 'safe_tfidf_vectorizer.pkl'
-        original_model_path = 'safe_xgboost_model.pkl'
-        
-        # Try enhanced models first
-        if os.path.exists(enhanced_vectorizer_path) and os.path.exists(enhanced_model_path):
-            vectorizer_path = enhanced_vectorizer_path
-            model_path = enhanced_model_path
-            model_type = "Enhanced"
-        elif os.path.exists(original_vectorizer_path) and os.path.exists(original_model_path):
-            vectorizer_path = original_vectorizer_path
-            model_path = original_model_path
-            model_type = "Standard"
-        else:
-            # Silent failure - no error message to user
-            return None, None
-        
-        # Load vectorizer with validation
-        vectorizer = joblib.load(vectorizer_path)
-        
-        # Validate vectorizer is properly fitted - silent failure if not
-        if not hasattr(vectorizer, 'idf_') or vectorizer.idf_ is None:
-            return None, None
-        
-        if not hasattr(vectorizer, 'vocabulary_') or not vectorizer.vocabulary_:
-            return None, None
-        
-        # Load model with validation
-        model = joblib.load(model_path)
-        
-        # Validate model - silent failure if not properly structured
-        if not hasattr(model, 'models') or not model.models:
-            return None, None
-        
-        # Silent loading for background use
-        return vectorizer, model
-        
-    except Exception as e:
-        # Silent failure - XGBoost not shown in UI
-        return None, None
 
 @st.cache_resource
 def load_longformer_model():
@@ -286,173 +205,6 @@ def load_longformer_model():
         st.error("Make sure you have: model.safetensors, config.json, and tokenizer files")
         return None, None, None
 
-# XGBoost preprocessing functions (your existing ones)
-def preprocess_lyrics_xgboost(lyrics):
-    lyrics = lyrics.lower()
-    lyrics = re.sub(r'[^a-zA-Z\s]', '', lyrics)
-    lyrics = re.sub(r'\s+', ' ', lyrics).strip()
-    tokens = word_tokenize(lyrics)
-    stop_words = set(stopwords.words('english'))
-    filtered_tokens = [word for word in tokens if word not in stop_words]
-    preprocessed_lyrics = ' '.join(filtered_tokens)
-    return preprocessed_lyrics
-
-def create_windows(text, window_size=10):
-    words = text.split()
-    windows = []
-    
-    if len(words) <= window_size:
-        return [text]
-    
-    for i in range(len(words) - window_size + 1):
-        window = ' '.join(words[i:i+window_size])
-        windows.append(window)
-    
-    return windows
-
-def post_process_violence(windows, predictions):
-    violence_terms = [
-        'kill', 'murder', 'shot', 'gun', 'shoot', 'stab', 'punch', 'kick', 'beat', 
-        'hit', 'fight', 'hurt', 'attack', 'blood', 'dead', 'death', 'die', 'knife',
-        'weapon', 'wound', 'bleed', 'brutal', 'slap', 'choke', 'strangle'
-    ]
-    
-    for i, window in enumerate(windows):
-        window_lower = window.lower()
-        has_violence_term = any(term in window_lower for term in violence_terms)
-        
-        if predictions[i, 1] == 1 and not has_violence_term:
-            predictions[i, 1] = 0
-    
-    return predictions
-
-# XGBoost analysis function
-def analyze_lyrics_xgboost(lyrics, model, vectorizer):
-    try:
-        # Validate inputs
-        if not hasattr(vectorizer, 'transform'):
-            raise ValueError("Vectorizer is not properly loaded")
-        
-        if not hasattr(vectorizer, 'idf_') or vectorizer.idf_ is None:
-            raise ValueError("Vectorizer is not fitted - missing IDF values")
-        
-        cleaned_lyrics = preprocess_lyrics_xgboost(lyrics)
-        
-        if not cleaned_lyrics or len(cleaned_lyrics.strip()) == 0:
-            st.warning("Lyrics became empty after preprocessing")
-            total_words = len(lyrics.split())
-            return {
-                'explicit': 0,
-                'violence': 0,
-                'sexual_content': 0,
-                'substance_use': 0,
-                'total_words': total_words,
-                'windows': [],
-                'window_predictions': np.array([])
-            }
-        
-        total_words = len(cleaned_lyrics.split())
-        
-        if total_words == 0:
-            st.warning("No valid words found after preprocessing")
-            return {
-                'explicit': 0,
-                'violence': 0,
-                'sexual_content': 0,
-                'substance_use': 0,
-                'total_words': len(lyrics.split()),
-                'windows': [],
-                'window_predictions': np.array([])
-            }
-        
-        explicit_words = 0
-        violence_words = 0
-        sexual_words = 0
-        substance_words = 0
-        
-        windows = create_windows(cleaned_lyrics)
-        
-        if not windows:
-            st.warning("No windows created from lyrics")
-            return {
-                'explicit': 0,
-                'violence': 0,
-                'sexual_content': 0,
-                'substance_use': 0,
-                'total_words': total_words,
-                'windows': [],
-                'window_predictions': np.array([])
-            }
-        
-        # Transform windows with error handling
-        try:
-            X_windows = vectorizer.transform(windows)
-        except Exception as e:
-            st.error(f"Error in vectorizer.transform: {str(e)}")
-            raise ValueError(f"Vectorizer transform failed: {str(e)}")
-        
-        # Make predictions with error handling
-        try:
-            window_predictions = model.predict(X_windows)
-        except Exception as e:
-            st.error(f"Error in model.predict: {str(e)}")
-            raise ValueError(f"Model prediction failed: {str(e)}")
-        
-        window_predictions = post_process_violence(windows, window_predictions)
-        
-        # Map words to windows (your existing logic)
-        word_to_windows = {}
-        for i, word in enumerate(cleaned_lyrics.split()):
-            word_to_windows[i] = []
-            
-        for i, window in enumerate(windows):
-            window_words = window.split()
-            word_indices = []
-            
-            words = cleaned_lyrics.split()
-            for j in range(len(words) - len(window_words) + 1):
-                if ' '.join(words[j:j+len(window_words)]) == window:
-                    word_indices = list(range(j, j+len(window_words)))
-                    break
-                    
-            for idx in word_indices:
-                if idx in word_to_windows:
-                    if len(window_predictions[i]) > 0 and window_predictions[i, 0]:
-                        word_to_windows[idx].append('explicit')
-                    if len(window_predictions[i]) > 1 and window_predictions[i, 1]:
-                        word_to_windows[idx].append('violence')
-                    if len(window_predictions[i]) > 2 and window_predictions[i, 2]:
-                        word_to_windows[idx].append('sexual')
-                    if len(window_predictions[i]) > 3 and window_predictions[i, 3]:
-                        word_to_windows[idx].append('substance')
-        
-        for idx, categories in word_to_windows.items():
-            if 'explicit' in categories:
-                explicit_words += 1
-            if 'violence' in categories:
-                violence_words += 1
-            if 'sexual' in categories:
-                sexual_words += 1
-            if 'substance' in categories:
-                substance_words += 1
-        
-        results = {
-            'explicit': min(100, (explicit_words / total_words) * 100) if total_words > 0 else 0,
-            'violence': min(100, (violence_words / total_words) * 100) if total_words > 0 else 0,
-            'sexual_content': min(100, (sexual_words / total_words) * 100) if total_words > 0 else 0,
-            'substance_use': min(100, (substance_words / total_words) * 100) if total_words > 0 else 0,
-            'window_predictions': window_predictions,
-            'windows': windows,
-            'total_words': total_words
-        }
-        
-        return results
-        
-    except Exception as e:
-        st.error(f"Error in XGBoost analysis: {str(e)}")
-        raise e
-
-# Longformer analysis function
 def analyze_lyrics_longformer(lyrics, tokenizer, model, preprocessor):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
@@ -541,22 +293,11 @@ def calculate_content_severity(results):
     severity = sum(results[category] * weights[category] for category in weights)
     return min(100, severity)
 
-# Radar Chart stub (removed for conference)
-def create_radar_chart(results):
-    # Charts removed for conference demo
-    return None
+
 
 # Classification function
-def classify_lyrics(lyrics, model_type, **kwargs):
-    if model_type == "XGBoost":
-        vectorizer = kwargs['vectorizer']
-        model = kwargs['model']
-        results = analyze_lyrics_xgboost(lyrics, model, vectorizer)
-    else:  # Longformer
-        tokenizer = kwargs['tokenizer']
-        model = kwargs['model']
-        preprocessor = kwargs['preprocessor']
-        results = analyze_lyrics_longformer(lyrics, tokenizer, model, preprocessor)
+def classify_lyrics(lyrics, tokenizer, model, preprocessor):
+    results = analyze_lyrics_longformer(lyrics, tokenizer, model, preprocessor)
     
     # Calculate severity
     severity = calculate_content_severity(results)
@@ -711,7 +452,7 @@ def display_results(results):
         if raw_probs:
             st.markdown("**Raw Model Probabilities (Longformer)**")
             st.write({ 'sexual': raw_probs[0], 'violence': raw_probs[1], 'substance': raw_probs[2], 'language/explicit': raw_probs[3] })
-        st.caption("Charts removed for conference demo version. Window analysis available only for XGBoost (currently not active in UI).")
+        st.caption("Charts removed for conference demo version.")
 
 # Main application
 def main():
@@ -726,8 +467,6 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Load models (silent for XGBoost)
-    _xgb_vectorizer, _xgb_model = load_xgboost_models()  # kept but unused
     longformer_tokenizer, longformer_model, longformer_preprocessor = load_longformer_model()
 
     if not all([longformer_tokenizer, longformer_model, longformer_preprocessor]):
@@ -759,10 +498,10 @@ def main():
                 try:
                     if all([longformer_tokenizer, longformer_model, longformer_preprocessor]):
                         results = classify_lyrics(
-                            lyrics, "Longformer",
-                            tokenizer=longformer_tokenizer,
-                            model=longformer_model,
-                            preprocessor=longformer_preprocessor
+                            lyrics,
+                            longformer_tokenizer,
+                            longformer_model,
+                            longformer_preprocessor
                         )
                     else:
                         # Demo fallback (simulated)
