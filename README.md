@@ -202,12 +202,6 @@ pandas>=2.1.0             # Data manipulation
 numpy>=1.24.3             # Numerical computing
 scikit-learn>=1.3.0       # Machine learning utilities
 ```
-
-### System Requirements
-- Minimum 8GB RAM for optimal performance
-- GPU acceleration recommended for large-scale deployments
-- Network connectivity for initial model downloads
-
 ## Research and Development
 
 This system represents an advancement in automated content analysis for musical media. The combination of transformer-based deep learning with traditional machine learning approaches provides both accuracy and interpretability for content assessment applications.
