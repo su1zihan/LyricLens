@@ -24,10 +24,7 @@ The system architecture consists of three main parts as shown below.
    | **M-AO** (Adults Only) | Suitable only for adults (18+); may include explicit sexual content, extreme violence, or graphic drug abuse. |
 
 3. **Content Severity Index (CSI)**  
-   In addition to discrete ratings, the system can output a **numeric score** summarizing the overall severity of explicit content.  
-   The CSI is calculated as the average of the four category probabilities (sexual, violence, language, substance).  
-   The score ranges from 0 to 100 and offers a quick way to compare songs by their overall explicitness.  
-   CSI is an auxiliary score for comparison and does not replace the primary MCR rating.  
+   In addition to discrete ratings, the system can output a **numeric score** summarizing the overall severity of explicit content. The CSI is calculated as the average of the four category probabilities (sexual, violence, language, substance). The score ranges from 0 to 100 and offers a quick way to compare songs by their overall explicitness. CSI is an auxiliary score for comparison and does not replace the primary MCR rating.  
 
 ## Installation and Setup
 ### Prerequisites
@@ -75,12 +72,12 @@ Download the pre-trained checkpoint from the following link and place it inside 
 [Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
 
 Create a `model/` directory and add the following files:
-- `model.safetensors` (Longformer model weights)
-- `config.json` (Model configuration)
-- `tokenizer_config.json` (Tokenizer configuration)
-- `vocab.json` (Vocabulary mappings)
+- `model.safetensors` (model weights)
+- `config.json` (model configuration)
+- `tokenizer_config.json` (tokenizer configuration)
+- `vocab.json` (vocabulary mappings)
 - `merges.txt` (BPE merges)
-- `special_tokens_map.json` (Special tokens)
+- `special_tokens_map.json` (special tokens)
 
 
 ### Step 4: Launch the application
@@ -108,71 +105,31 @@ Launch with both custom model path and port:
 streamlit run app.py -- --model-path ./model --port 8502
 ```
 
-## Project Structure
-
-```
-├── app.py                           # Main application with UI and analysis logic
-├── music_content_rating.py          # Content rating system implementation
-├── train_model.py                   # Model training and validation scripts
-├── requirements.txt                 # Python dependencies specification
-├── violence_top_features.txt        # Feature importance analysis results
-├── enhanced_tfidf_vectorizer.pkl    # Pre-trained TF-IDF vectorizer
-├── enhanced_xgboost_model.pkl       # Pre-trained XGBoost classifier
-├── checkpoint-3588/                 # Longformer model checkpoint
-│   ├── config.json                  # Model configuration
-│   ├── model.safetensors           # Model weights
-│   ├── tokenizer_config.json       # Tokenizer configuration
-│   └── vocab.json                   # Vocabulary mappings
-└── lyrics_analyzer_env/             # Python virtual environment
-```
-
 ## Usage
 
 ### Command-Line Options
+Show available options:
 ```bash
-# Show help
-python app.py --help
-
-# Custom model directory
-streamlit run app.py -- --model-path ./my-model-checkpoint
-
-# Production deployment
-streamlit run app.py -- --host 0.0.0.0 --port 8080 --model-path /opt/models/lyriclens
+streamlit run app.py -- --help
 ```
 
-### Basic Analysis
-1. Launch the application and navigate to the web interface
-2. Input song lyrics in the provided text area
-3. Click "Analyze" to process the content
-4. Review results including category scores, severity index, and content rating
+Run with a custom model directory:
 
-### Advanced Features
-- Real-time content scoring across multiple dimensions
-- Standardized music content ratings with detailed explanations
-- Visual severity indicators and category breakdowns
-- Export capabilities for research and documentation
 
-## Model Details
+## Usage
 
-### Longformer Architecture
-- 12-layer transformer with 768 hidden dimensions
-- 12 attention heads with combined local and global attention mechanisms
-- Pre-trained on large text corpora and fine-tuned on lyric-specific datasets
-- Optimized for multi-label classification with four target categories
+### After Launch
+1. Open http://localhost:8501 in your browser  
+2. Paste song lyrics into the input area  
+3. Click **Analyze**  
+4. View the results: category scores, CSI score, and final MCR rating  
 
-### Training Framework
-- PyTorch implementation with Hugging Face Transformers
-- Safetensors format for secure and efficient model serialization
-- Comprehensive training state preservation for reproducibility
+### Command-Line Help
+You can check all available options with:
 
-### Performance Characteristics
-- Real-time inference capability for production deployment
-- Scalable architecture supporting batch processing
-- Robust handling of variable-length input sequences
-
----
-
-The pre-trained model can be downloaded from the following link: [Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
+```bash
+streamlit run app.py -- --help
+```
 
 ## Applications
 
@@ -187,19 +144,6 @@ The pre-trained model can be downloaded from the following link: [Download Model
 - Batch processing capabilities for large-scale analysis
 - Configurable thresholds for diverse organizational requirements
 
-## Technical Requirements
-
-### Dependencies & Requirements
-```txt
-streamlit>=1.27.0          # Web application framework
-torch>=1.9.0               # Deep learning backend
-transformers>=4.21.0       # Hugging Face model library
-safetensors>=0.3.0         # Secure model serialization
-nltk>=3.8.1               # Natural language processing
-pandas>=2.1.0             # Data manipulation
-numpy>=1.24.3             # Numerical computing
-scikit-learn>=1.3.0       # Machine learning utilities
-```
 ## Research and Development
 
 This system represents an advancement in automated content analysis for musical media. The combination of transformer-based deep learning with traditional machine learning approaches provides both accuracy and interpretability for content assessment applications.
