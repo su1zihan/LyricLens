@@ -186,7 +186,6 @@ def rate_single_song(violence, sexual, language, substance):
     result = rater.calculate_rating(violence, sexual, language, substance)
 
     descriptors_text = _format_descriptors_for_output(result)
-    # final_rating 仍沿用原有逻辑：仅当存在“真正的”描述符列表时拼接文本
     final_rating = (
         f"{result['rating']}: {descriptors_text}"
         if (result['rating'] != 'M-E' and result['descriptors'])
@@ -267,7 +266,8 @@ def process_csv_file(input_file, output_file=None,
         if (idx + 1) % 100 == 0:
             print(f"Processed {idx + 1} / {len(df)}")
 
-    # 导出的列顺序（按你现有 CSV 的顺序放四个分数列）
+
+    # Column order for export 
     keep_cols = [
         'song_index', 'song', 'text',
         'sexual_score', 'violence_score', 'substance_score', 'language_score',
