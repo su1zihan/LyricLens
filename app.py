@@ -32,16 +32,27 @@ except ImportError:
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
+# Ensure NLTK data path is set correctly
+import nltk
+try:
+    nltk.data.path.append(os.path.expanduser('~/nltk_data'))
+except:
+    pass
+
 try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('corpora/stopwords')
-    nltk.data.find('wordnet')
-    nltk.data.find('averaged_perceptron_tagger')
+    nltk.data.find('corpora/wordnet')
+    nltk.data.find('taggers/averaged_perceptron_tagger')
 except LookupError:
-    nltk.download('punkt')
-    nltk.download('stopwords')
-    nltk.download('wordnet')
-    nltk.download('averaged_perceptron_tagger')
+    try:
+        nltk.download('punkt', quiet=True)
+        nltk.download('stopwords', quiet=True)
+        nltk.download('wordnet', quiet=True)
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+        nltk.download('omw-1.4', quiet=True)  # Additional wordnet data
+    except Exception as e:
+        st.warning(f"NLTK download warning: {e}. Some features may be limited.")
 
 if _transformers_warning:
     st.warning(_transformers_warning)
@@ -98,7 +109,23 @@ st.markdown("""
 
 class LongformerPreprocessor:
     def __init__(self):
-        self.lemmatizer = nltk.stem.WordNetLemmatizer()
+        try:
+            # Force reload NLTK data to avoid lazy loading issues
+            import nltk.stem
+            import nltk.corpus
+            
+            # Initialize the lemmatizer with explicit error handling
+            self.lemmatizer = nltk.stem.WordNetLemmatizer()
+            
+            # Test the lemmatizer to ensure it works
+            test_result = self.lemmatizer.lemmatize("testing", "v")
+            if not isinstance(test_result, str):
+                raise ValueError("Lemmatizer returned unexpected type")
+                
+        except Exception as e:
+            st.warning(f"WordNet lemmatizer initialization failed: {e}. Using basic text processing.")
+            self.lemmatizer = None
+        
         self.contractions = {
             r"\bI'm\b": "I am", r"\byou're\b": "you are", r"\bhe's\b": "he is", r"\bshe's\b": "she is",
             r"\bit's\b": "it is", r"\bwe're\b": "we are", r"\bthey're\b": "they are",
@@ -131,13 +158,27 @@ class LongformerPreprocessor:
             if not line:
                 continue
             line = self.expand_contractions_str(line)
-            tokens = [w for w in nltk.word_tokenize(line.lower()) if w.isalpha()]
-            if not tokens:
-                continue
-            tagged = nltk.pos_tag(tokens)
-            lemmas = [self.lemmatizer.lemmatize(w, self.wn_pos(t)) for w, t in tagged]
-            if lemmas:
-                cleaned.append(" ".join(lemmas))
+            try:
+                tokens = [w for w in nltk.word_tokenize(line.lower()) if w.isalpha()]
+                if not tokens:
+                    continue
+                    
+                if self.lemmatizer:
+                    # Use lemmatizer if available
+                    tagged = nltk.pos_tag(tokens)
+                    lemmas = [self.lemmatizer.lemmatize(w, self.wn_pos(t)) for w, t in tagged]
+                    if lemmas:
+                        cleaned.append(" ".join(lemmas))
+                else:
+                    # Fallback to simple tokenization without lemmatization
+                    if tokens:
+                        cleaned.append(" ".join(tokens))
+            except Exception:
+                # Fallback to basic word extraction if NLTK fails
+                basic_tokens = [w.lower() for w in re.findall(r'\b[a-zA-Z]+\b', line)]
+                if basic_tokens:
+                    cleaned.append(" ".join(basic_tokens))
+                    
         merged = " ".join(cleaned)
         merged = re.sub(r"[^a-zA-Z\s]", "", merged)
         return re.sub(r"\s+", " ", merged).strip()
@@ -149,19 +190,19 @@ def parse_arguments():
         '--model-path', 
         type=str, 
         default=None,
-        help='Path to the model checkpoint directory'
+        help='Path to the model directory (default: ./model, fallback: ./checkpoint-3588)'
     )
     parser.add_argument(
         '--port', 
         type=int, 
         default=8501,
-        help='Port for Streamlit server'
+        help='Port for Streamlit server (default: 8501)'
     )
     parser.add_argument(
         '--host', 
         type=str, 
         default='localhost',
-        help='Host for Streamlit server'
+        help='Host for Streamlit server (default: localhost)'
     )
     
     # For Streamlit, we need to handle the case where sys.argv might contain Streamlit-specific args
@@ -214,13 +255,29 @@ def load_longformer_model():
             # Use user-specified path
             base_path = os.path.abspath(args.model_path)
         else:
-            # Use relative path from the script directory (default)
+            # Smart model path discovery
             script_dir = os.path.dirname(os.path.abspath(__file__))
-            base_path = os.path.join(script_dir, "checkpoint-3588")
+            
+            # Try common model folder names in order of preference
+            candidate_folders = ["model", "checkpoint-3588", "models", "checkpoint"]
+            base_path = None
+            
+            for folder_name in candidate_folders:
+                candidate_path = os.path.join(script_dir, folder_name)
+                model_file = os.path.join(candidate_path, "model.safetensors")
+                config_file = os.path.join(candidate_path, "config.json")
+                
+                if os.path.exists(model_file) and os.path.exists(config_file):
+                    base_path = candidate_path
+                    break
+            
+            # Default to 'model' folder if nothing found
+            if base_path is None:
+                base_path = os.path.join(script_dir, "model")
         
-        model_path = os.path.join(base_path, "model.safetensors")  # Path to your safetensors file
-        config_path = os.path.join(base_path, "config.json")      # Path to your config file
-        tokenizer_path = base_path                                 # Directory containing tokenizer files
+        model_path = os.path.join(base_path, "model.safetensors")
+        config_path = os.path.join(base_path, "config.json")
+        tokenizer_path = base_path
         
         # Check if required files exist
         if not os.path.exists(model_path):
@@ -233,7 +290,7 @@ def load_longformer_model():
         
         device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        # Load tokenizer (should work with directory containing tokenizer files)
+        # Load tokenizer
         tokenizer = LongformerTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
         
         # Load model using safetensors
@@ -289,50 +346,32 @@ def analyze_lyrics_longformer(lyrics, tokenizer, model, preprocessor):
         logits = model(**inputs).logits
         probs = torch.sigmoid(logits).cpu().numpy()[0]
     
-    # Map Longformer labels to our format
     # Longformer labels: ["sexual", "violence", "substance", "language"]
     # Our format: ["explicit", "violence", "sexual_content", "substance_use"]
     
-    # Category-specific probability scaling for better accuracy
-    def category_specific_scaling(prob, category):
+    # Original default probability scaling - uniform thresholds
+    def original_scaling(prob, category):
         """
-        Use different thresholds and scaling approaches for different categories
-        Language model appears severely miscalibrated - using step function approach
+        Original default scaling approach with uniform 50% threshold for all categories
+        Simple linear scaling: probabilities above 50% map linearly to 0-100% scores
         """
-        if category == 'explicit':
-            # Step function approach for language - only flag truly extreme content
-            if prob < 0.95:  # Require 95%+ confidence for any explicit rating
-                return 0.0
-            elif prob < 0.98:  # 95-98% maps to low explicit (0-30%)
-                return ((prob - 0.95) / 0.03) * 30
-            else:  # 98%+ maps to high explicit (30-100%)
-                return 30 + ((prob - 0.98) / 0.02) * 70
-                
-        elif category == 'sexual':
-            # High threshold but gradual scaling for sexual content
-            if prob < 0.75:
-                return 0.0
-            else:
-                return ((prob - 0.75) / 0.25) * 100
-                
-        else:  # violence and substance
-            # Standard scaling for these categories
-            threshold = 0.35
-            if prob < threshold:
-                return 0.0
-            else:
-                return ((prob - threshold) / (1.0 - threshold)) * 100
+        threshold = 0.5  # Default 50% threshold for all categories
+        if prob < threshold:
+            return 0.0
+        else:
+            # Linear scaling from threshold to 100%
+            return ((prob - threshold) / (1.0 - threshold)) * 100
     
-    # Use category-specific scaling approach
+    # Use original default scaling approach
     results = {
-        'explicit': category_specific_scaling(probs[3], 'explicit'),      # language -> explicit
-        'violence': category_specific_scaling(probs[1], 'violence'),      # violence -> violence  
-        'sexual_content': category_specific_scaling(probs[0], 'sexual'),  # sexual -> sexual_content
-        'substance_use': category_specific_scaling(probs[2], 'substance'), # substance -> substance_use
+        'explicit': original_scaling(probs[3], 'explicit'),      # language -> explicit
+        'violence': original_scaling(probs[1], 'violence'),      # violence -> violence  
+        'sexual_content': original_scaling(probs[0], 'sexual'),  # sexual -> sexual_content
+        'substance_use': original_scaling(probs[2], 'substance'), # substance -> substance_use
         'total_words': len(lyrics.split()),
         'confidence_scores': probs.tolist(),
         'raw_probabilities': probs.tolist(),
-        'scaling_method': 'category_specific'
+        'scaling_method': 'original_default'
     }
     
     # Ensure no negative values and reasonable bounds
@@ -345,9 +384,9 @@ def analyze_lyrics_longformer(lyrics, tokenizer, model, preprocessor):
 def calculate_content_severity(results):
     weights = {
         'explicit': 0.25,
-        'violence': 0.30,
+        'violence': 0.25,
         'sexual_content': 0.25,
-        'substance_use': 0.20
+        'substance_use': 0.25
     }
     
     severity = sum(results[category] * weights[category] for category in weights)
@@ -512,21 +551,20 @@ def display_results(results):
         if raw_probs:
             st.markdown("**Raw Model Probabilities (Longformer)**")
             st.write({ 'sexual': raw_probs[0], 'violence': raw_probs[1], 'substance': raw_probs[2], 'language/explicit': raw_probs[3] })
-        st.caption("Charts removed for conference demo version.")
+        st.caption("Charts removed for demo version.")
 
 # Main application
 def main():
     # Parse arguments for configuration info
     args = parse_arguments()
     
-    # Conference-ready header
+    # Application header
     st.markdown("""
     <div class="flex center-y justify-between" style="margin-bottom:18px;">
         <div>
             <h1 style="margin:0;">LyricLens</h1>
             <div style="font-size:.8rem; color:var(--text-secondary);">AI-Powered Lyric Content Assessment</div>
         </div>
-        <div style="text-align:right; font-size:.55rem; color:var(--text-secondary); letter-spacing:.5px;">Conference Demo • 2025 Edition</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -536,19 +574,19 @@ def main():
         if args.model_path:
             st.info(f"🎯 Custom model path: `{args.model_path}`")
         else:
-            st.info("🎯 Using default model path: `./checkpoint-3588`")
+            st.info("🎯 Using default model path: `./model`")
         
         st.markdown("### Command Line Usage")
         st.code("""
-# Default usage
-streamlit run app.py
+    # Default usage
+    streamlit run app.py
 
-# Custom model path
-streamlit run app.py -- --model-path /path/to/model
+    # Custom model path
+    streamlit run app.py -- --model-path /path/to/model
 
-# Custom model path + port
-streamlit run app.py -- --model-path /path/to/model --port 8502
-        """, language="bash")
+    # Custom model path + port
+    streamlit run app.py -- --model-path /path/to/model --port 8502
+            """, language="bash")
 
     longformer_tokenizer, longformer_model, longformer_preprocessor = load_longformer_model()
 
@@ -632,7 +670,7 @@ if __name__ == "__main__":
         
         print("🎵 LyricLens - AI-Powered Lyric Content Assessment")
         print("=" * 50)
-        print(f"Model path: {args.model_path or './checkpoint-3588'}")
+        print(f"Model path: {args.model_path or './model'}")
         print(f"Host: {args.host}")
         print(f"Port: {args.port}")
         print()
