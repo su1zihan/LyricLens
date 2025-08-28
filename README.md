@@ -37,9 +37,8 @@ The system architecture consists of three main parts as shown below.
 - **CUDA-compatible GPU** (optional, for accelerated inference)
 
 ### Step 1: Clone and Setup
-```bash
+
 Clone the repository
-```
 
 ```bash
 git clone https://github.com/su1zihan/LyricLens
@@ -62,10 +61,6 @@ source env/bin/activate
 Windows (PowerShell or CMD):
 ```bash
 env\Scripts\activate
-```
-
-```bash
-pip install -r requirements.txt
 ```
 
 ### Step 2: Install Dependencies
