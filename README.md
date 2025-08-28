@@ -1,8 +1,9 @@
 # LyricLens: AI-Powered Music Content Analysis System
 
-LyricLens is an open source system for multi label lyric classification and music content rating.  
-It evaluates song lyrics in **four categories**: sexual content, violence, explicit language, and substance use.  
+LyricLens is an open source system for multi label lyric classification and music content rating. It evaluates song lyrics in **four categories**: sexual content, violence, explicit language, and substance use. 
+
 The predictions are mapped into a **five level Music Content Rating (MCR)** that provides interpretable and standardized content labels for parents, educators, researchers, and platform developers.  
+
 The system outputs category specific assessments together with overall content ratings that are consistent with widely used content standards.  
 
 ## Architecture
