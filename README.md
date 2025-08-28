@@ -1,60 +1,45 @@
 # LyricLens: AI-Powered Music Content Analysis System
 
-LyricLens is a comprehensive content analysis platform that leverages advanced machine learning to evaluate song lyrics for safety and appropriateness. The system provides automated content classification, severity assessment, and standardized music content ratings for parents, educators, content creators, and researchers.
+LyricLens is an open source system for multi label lyric classification and music content rating.  
+It evaluates song lyrics in **four categories**: sexual content, violence, explicit language, and substance use.  
+The predictions are mapped into a **five level Music Content Rating (MCR)** that provides interpretable and standardized content labels for parents, educators, researchers, and platform developers.  
+The system outputs category specific assessments together with overall content ratings that are consistent with widely used content standards.  
 
-## Overview
+## Architecture
 
-The platform combines state-of-the-art transformer models with traditional machine learning approaches to deliver multi-dimensional content analysis. LyricLens processes song lyrics through sophisticated natural language processing pipelines and outputs both granular category-specific assessments and standardized content ratings compatible with industry frameworks.
+The system architecture consists of three main parts as shown below.
 
-## System Architecture
+1. **Multi label classification**  
+   The system predicts four categories of explicit content: sexual content, violence, explicit language, and substance use.  
 
-### Core Components
+2. **Music Content Rating (MCR)**  
+   The predictions are mapped into five standardized levels with clear thresholds and descriptors:  
 
-**Longformer Model Pipeline**
-- Fine-tuned transformer architecture optimized for long-form text analysis
-- Multi-label classification across four content categories: violence, explicit language, sexual content, and substance use
-- Supports input sequences up to 4096 tokens for comprehensive lyric analysis
-- Model checkpoint includes weights, configuration, and tokenizer files for deployment
+   | Rating | Content Description |
+   |--------|----------------------|
+   | **M-E** (Everyone) | Suitable for all ages; no explicit sexual themes, violence, substance use, or strong language. |
+   | **M-P** (Parental Guidance Suggested) | Some material may not be suitable for children; may contain mild language, minimal suggestive themes, or very brief non-graphic violence. |
+   | **M-T** (Teen) | Suitable for ages 13+; may contain violence, suggestive themes, drug references, or infrequent use of strong language. |
+   | **M-R** (Restricted) | Under 17 requires accompanying adult guardian; may contain intense violence, strong sexual content, frequent strong language, or drug abuse. |
+   | **M-AO** (Adults Only) | Suitable only for adults (18+); may include explicit sexual content, extreme violence, or graphic drug abuse. |
 
-**Content Severity Index**
-The Content Severity Index synthesizes multi-categorical assessment into a single metric using equal-weight aggregation: S = Σ(0.25 × pi) across violence, explicit language, sexual content, and substance use categories. This provides rapid dimensional reduction with balanced assessment, offering intuitive 0-100 interpretability and real-time computational efficiency. The equal weighting prevents category dominance while supporting diverse applications from parental filtering to music analytics research.
+3. **Content Severity Index (CSI)**  
+   In addition to discrete ratings, the system can output a **numeric score** summarizing the overall severity of explicit content.  
+   The index is computed as the average of the four category probabilities:  
 
-**Music Content Rating System**
-- Standardized rating framework with five classifications: M-E (Everyone), M-P (Parental Guidance), M-T (Teen), M-R (Restricted), M-AO (Adults Only)
-- Threshold-based rating assignment with special conditions for extreme content
-- Content descriptors for granular understanding of rating rationale
+   \[
+   CSI = \frac{1}{4} (p_{\text{sexual}} + p_{\text{violence}} + p_{\text{language}} + p_{\text{substance}})
+   \]
 
+   This produces a value between 0 and 1 (or 0–100 if scaled), which offers a quick way to compare songs by their overall explicitness.  
+   CSI is an auxiliary score for comparison and does not replace the primary MCR rating.  
 
-| Rating | Content Description |
-|--------|----------------------|
-| **M-E** (Everyone) | Suitable for all ages; no explicit sexual themes, violence, substance use, or strong language. |
-| **M-P** (Parental Guidance Suggested) | Some material may not be suitable for children; may contain mild language, minimal suggestive themes, or very brief non-graphic violence. |
-| **M-T** (Teen) | Suitable for ages 13+; may contain violence, suggestive themes, drug references, or infrequent use of strong language. |
-| **M-R** (Restricted) | Under 17 requires accompanying adult guardian; may contain intense violence, strong sexual content, frequent strong language, or drug abuse. |
-| **M-AO** (Adults Only) | Suitable only for adults (18+); may include explicit sexual content, extreme violence, or graphic drug abuse. |
+## Implementation Notes
 
-
-**Text Processing Pipeline**
-- Advanced preprocessing including contraction expansion, lemmatization, and normalization
-- Multi-stage tokenization optimized for lyrical content
-- Robust handling of incomplete or ambiguous input through fallback mechanisms
-
-### Technical Implementation
-
-**User Interface**
-- Streamlit-based web application with responsive design
-- Real-time analysis with progress indicators and detailed result visualization
-- Compact, conference-ready interface with professional styling
-
-**Model Integration**
-- Primary analysis via fine-tuned Longformer model with safetensors format
-- Category-specific probability scaling with configurable thresholds
-- Caching mechanisms for optimized model loading and inference performance
-
-**Supporting Models**
-- TF-IDF vectorization with XGBoost classification for auxiliary analysis
-- Feature importance analysis for interpretability and model validation
-- Fallback classification pipeline for system resilience
+- Basic text preprocessing is applied before classification.  
+- The system includes a Streamlit interface for real time lyric analysis and visualization.  
+- Predictions are generated by a transformer based classifier and mapped to ratings using transparent thresholds.  
+ 
 
 ## Installation and Setup
 
@@ -67,17 +52,14 @@ The Content Severity Index synthesizes multi-categorical assessment into a singl
 ### Step 1: Clone and Setup
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd kids-safe-music-INTEGRATED
+git clone https://github.com/su1zihan/LyricLens
+cd LyricLens
 
-# Create virtual environment
-python -m venv lyrics_analyzer_env
-
-# Activate virtual environment
-# Windows:
-lyrics_analyzer_env\Scripts\activate
-# macOS/Linux:
-source lyrics_analyzer_env/bin/activate
+# Create virtual environment (optional but recommended)
+python -m venv env
+source env/bin/activate   # macOS/Linux
+env\Scripts\activate      # Windows
+pip install -r requirements.txt
 ```
 
 ### Step 2: Install Dependencies
@@ -87,6 +69,9 @@ pip install -r requirements.txt
 
 ### Step 3: Download Model Files (Required)
 **Important:** The model files are not included in the repository due to their size (3.5GB+).
+Download the pre-trained checkpoint from the following link and place it inside a new `model/` directory:
+
+[Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
 
 Create a `model/` directory and add the following files:
 - `model.safetensors` (Longformer model weights)
@@ -98,17 +83,22 @@ Create a `model/` directory and add the following files:
 
 ### Step 4: Launch Application
 ```bash
-# Default launch (uses ./checkpoint-3588)
+# Default launch (auto-detects model in ./model or ./checkpoint-3588)
 streamlit run app.py
 
-# Custom model path
+# Launch with a custom model path
 streamlit run app.py -- --model-path /path/to/your/model
 
-# Custom port
+# Launch on a different port
 streamlit run app.py -- --port 8502
+
+# Launch with custom model path and port
+streamlit run app.py -- --model-path ./model --port 8502
 ```
 
-The application will be accessible at `http://localhost:8501`
+The application will be accessible at `http://localhost:8501` by default.
+A model checkpoint is required. If --model-path is not provided, the app will search in common folders (./model, ./checkpoint-3588, ./models, ./checkpoint).
+
 
 ## Project Structure
 
