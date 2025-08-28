@@ -59,28 +59,53 @@ The Content Severity Index synthesizes multi-categorical assessment into a singl
 ## Installation and Setup
 
 ### Prerequisites
-- Python 3.10 or higher
-- Virtual environment support
-- CUDA-compatible GPU (optional, for accelerated inference)
+- **Python 3.10 or higher**
+- **8GB+ RAM** (recommended for model loading)
+- **Internet connection** (for initial NLTK data downloads)
+- **CUDA-compatible GPU** (optional, for accelerated inference)
 
-### Environment Setup
+### Step 1: Clone and Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd kids-safe-music-INTEGRATED
 
-1. Clone the repository and navigate to the project directory
-2. Create and activate a virtual environment:
-   ```powershell
-   python -m venv lyrics_analyzer_env
-   & lyrics_analyzer_env\Scripts\Activate.ps1
-   ```
-3. Install dependencies:
-   ```powershell
-   pip install -r requirements.txt
-   ```
+# Create virtual environment
+python -m venv lyrics_analyzer_env
 
-### Application Launch
+# Activate virtual environment
+# Windows:
+lyrics_analyzer_env\Scripts\activate
+# macOS/Linux:
+source lyrics_analyzer_env/bin/activate
+```
 
-Start the Streamlit application:
-```powershell
+### Step 2: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3: Download Model Files (Required)
+**Important:** The model files are not included in the repository due to their size (3.5GB+).
+
+Create a `model/` directory and add the following files:
+- `model.safetensors` (Longformer model weights)
+- `config.json` (Model configuration)
+- `tokenizer_config.json` (Tokenizer configuration)
+- `vocab.json` (Vocabulary mappings)
+- `merges.txt` (BPE merges)
+- `special_tokens_map.json` (Special tokens)
+
+### Step 4: Launch Application
+```bash
+# Default launch (uses ./checkpoint-3588)
 streamlit run app.py
+
+# Custom model path
+streamlit run app.py -- --model-path /path/to/your/model
+
+# Custom port
+streamlit run app.py -- --port 8502
 ```
 
 The application will be accessible at `http://localhost:8501`
@@ -104,6 +129,18 @@ The application will be accessible at `http://localhost:8501`
 ```
 
 ## Usage
+
+### Command-Line Options
+```bash
+# Show help
+python app.py --help
+
+# Custom model directory
+streamlit run app.py -- --model-path ./my-model-checkpoint
+
+# Production deployment
+streamlit run app.py -- --host 0.0.0.0 --port 8080 --model-path /opt/models/lyriclens
+```
 
 ### Basic Analysis
 1. Launch the application and navigate to the web interface
@@ -154,11 +191,17 @@ The pre-trained model can be downloaded from the following link: [Download Model
 
 ## Technical Requirements
 
-### Dependencies
-- Core: Streamlit, PyTorch, Transformers, NumPy, Pandas
-- NLP: NLTK, scikit-learn, safetensors
-- Visualization: Matplotlib
-- Machine Learning: XGBoost
+### Dependencies & Requirements
+```txt
+streamlit>=1.27.0          # Web application framework
+torch>=1.9.0               # Deep learning backend
+transformers>=4.21.0       # Hugging Face model library
+safetensors>=0.3.0         # Secure model serialization
+nltk>=3.8.1               # Natural language processing
+pandas>=2.1.0             # Data manipulation
+numpy>=1.24.3             # Numerical computing
+scikit-learn>=1.3.0       # Machine learning utilities
+```
 
 ### System Requirements
 - Minimum 8GB RAM for optimal performance
