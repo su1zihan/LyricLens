@@ -24,6 +24,16 @@ The Content Severity Index synthesizes multi-categorical assessment into a singl
 - Threshold-based rating assignment with special conditions for extreme content
 - Content descriptors for granular understanding of rating rationale
 
+
+| Rating | Content Description |
+|--------|----------------------|
+| **M-E** (Everyone) | Suitable for all ages; no explicit sexual themes, violence, substance use, or strong language. |
+| **M-P** (Parental Guidance Suggested) | Some material may not be suitable for children; may contain mild language, minimal suggestive themes, or very brief non-graphic violence. |
+| **M-T** (Teen) | Suitable for ages 13+; may contain violence, suggestive themes, drug references, or infrequent use of strong language. |
+| **M-R** (Restricted) | Under 17 requires accompanying adult guardian; may contain intense violence, strong sexual content, frequent strong language, or drug abuse. |
+| **M-AO** (Adults Only) | Suitable only for adults (18+); may include explicit sexual content, extreme violence, or graphic drug abuse. |
+
+
 **Text Processing Pipeline**
 - Advanced preprocessing including contraction expansion, lemmatization, and normalization
 - Multi-stage tokenization optimized for lyrical content
@@ -124,6 +134,10 @@ The application will be accessible at `http://localhost:8501`
 - Real-time inference capability for production deployment
 - Scalable architecture supporting batch processing
 - Robust handling of variable-length input sequences
+
+---
+
+The pre-trained model can be downloaded from the following link: [Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
 
 ## Applications
 
