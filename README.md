@@ -69,16 +69,18 @@ pip install -r requirements.txt
 **Important:** The model files are not included in the repository due to their size (3.5GB+).
 Download the pre-trained checkpoint from the following link and place it inside a new `model/` directory:
 
-[Download Model](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
+[Model Link](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
 
-Create a `model/` directory and add the following files:
-- `model.safetensors` (model weights)
-- `config.json` (model configuration)
-- `tokenizer_config.json` (tokenizer configuration)
-- `vocab.json` (vocabulary mappings)
-- `merges.txt` (BPE merges)
-- `special_tokens_map.json` (special tokens)
-
+The download may come as a **zip archive**. After downloading:  
+1. Unzip the archive  
+2. Create a folder named `model/` inside the project directory (`LyricLens/`)  
+3. Copy the all files from the unzipped folder into `LyricLens/model/`:  
+- `model.safetensors` (model weights)  
+- `config.json` (model configuration)  
+- `tokenizer_config.json` (tokenizer configuration)  
+- `vocab.json` (vocabulary mappings)  
+- `merges.txt` (BPE merges)  
+- `special_tokens_map.json` (special tokens) 
 
 ### Step 4: Launch the application
 
@@ -138,11 +140,6 @@ streamlit run app.py -- --help
 - **Educational Settings**: Content assessment for classroom and institutional use
 - **Content Creation**: Compliance verification for streaming platforms and media distribution
 - **Research Applications**: Large-scale content analysis for academic and industry research
-
-### Integration Capabilities
-- RESTful API potential for third-party system integration
-- Batch processing capabilities for large-scale analysis
-- Configurable thresholds for diverse organizational requirements
 
 ## Research and Development
 
