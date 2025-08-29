@@ -141,6 +141,24 @@ streamlit run app.py -- --help
 
 ## Research and Development
 
-This system represents an advancement in automated content analysis for musical media. The combination of transformer-based deep learning with traditional machine learning approaches provides both accuracy and interpretability for content assessment applications.
+This system represents an advancement in automated content analysis for musical media.  
+The combination of transformer-based deep learning with traditional machine learning approaches provides both accuracy and interpretability for content assessment applications.  
 
-For research collaborations, technical inquiries, or commercial applications, please contact the project maintainer.
+For research collaborations, technical inquiries, or commercial applications, please contact the project maintainer.  
+
+## Authors
+
+- **Kai-Yu Lu** — Khoury College of Computer Sciences, Northeastern University, Seattle, WA  
+  ✉️ [lu.kaiy@northeastern.edu](mailto:lu.kaiy@northeastern.edu)
+
+- **Zihan Su** — Khoury College of Computer Sciences, Northeastern University, Seattle, WA  
+  ✉️ [su.zihan1@northeastern.edu](mailto:su.zihan1@northeastern.edu)
+
+
+- **Malhar Sham Ghogare** — Khoury College of Computer Sciences, Northeastern University, Seattle, WA  
+  ✉️ [ghogare.m@northeastern.edu](mailto:ghogare.m@northeastern.edu)
+
+
+- **Shanu Sushmita** — Khoury College of Computer Sciences, Northeastern University, Seattle, WA  
+  ✉️ [s.sushmita.m@northeastern.edu](mailto:s.sushmita.m@northeastern.edu)
+
