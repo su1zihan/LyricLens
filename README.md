@@ -68,9 +68,7 @@ pip install -r requirements.txt
 
 ### Step 3: Download Model Files (Required)
 **Important:** The model files are not included in the repository due to their size (3.5GB+).
-Download the pre-trained checkpoint from the following link and place it inside a new `model/` directory:
-
-[Model Link](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
+Download the pre-trained checkpoint from the following link and place it inside a new `model/` directory: [Model Link](https://drive.google.com/drive/folders/1EQlMFnAieKLeGEQR0ViQdk1Su2P8mjPy?usp=sharing)
 
 The download may come as a **zip archive**. After downloading:  
 1. Unzip the archive  
