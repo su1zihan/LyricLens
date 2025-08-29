@@ -10,7 +10,6 @@ import random
 import argparse
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import time
 
 st.set_page_config(
     page_title="LyricLens",
@@ -241,7 +240,7 @@ def parse_arguments():
     args = parser.parse_args(filtered_argv[1:] if filtered_argv else [])
     return args
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_longformer_model():
     try:
         if not TRANSFORMERS_AVAILABLE:
@@ -549,9 +548,16 @@ def display_results(results):
     with st.expander("Advanced Details", expanded=False):
         raw_probs = results.get('raw_probabilities', [])
         if raw_probs:
-            st.markdown("**Raw Model Probabilities (Longformer)**")
-            st.write({ 'sexual': raw_probs[0], 'violence': raw_probs[1], 'substance': raw_probs[2], 'language/explicit': raw_probs[3] })
+            st.markdown("**Raw Model Probabilities**")
+            formatted_probs = {
+                'sexual': round(raw_probs[0], 4),
+                'violence': round(raw_probs[1], 4),
+                'substance': round(raw_probs[2], 4),
+                'language/explicit': round(raw_probs[3], 4)
+            }
+            st.write(formatted_probs)
         st.caption("Charts removed for demo version.")
+
 
 # Main application
 def main():
@@ -572,9 +578,9 @@ def main():
     with st.sidebar:
         st.markdown("### Configuration")
         if args.model_path:
-            st.info(f"🎯 Custom model path: `{args.model_path}`")
+            st.info(f"Custom model path: `{args.model_path}`")
         else:
-            st.info("🎯 Using default model path: `./model`")
+            st.info("Using default model path: `./model`")
         
         st.markdown("### Command Line Usage")
         st.code("""
@@ -690,7 +696,7 @@ if __name__ == "__main__":
         try:
             subprocess.run(cmd)
         except KeyboardInterrupt:
-            print("\n👋 LyricLens stopped.")
+            print("\nLyricLens stopped.")
         except FileNotFoundError:
-            print("❌ Streamlit not found. Please install it: pip install streamlit")
+            print("Streamlit not found. Please install it: pip install streamlit")
             print("Then run: streamlit run app.py")
