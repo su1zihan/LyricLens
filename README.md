@@ -116,9 +116,6 @@ Show available options:
 streamlit run app.py -- --help
 ```
 
-Run with a custom model directory:
-
-
 ## Usage
 
 ### After Launch
