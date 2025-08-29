@@ -102,14 +102,6 @@ streamlit run app.py -- --model-path ./model --port 8502
 
 ## Usage
 
-### Command-Line Options
-Show available options:
-```bash
-streamlit run app.py -- --help
-```
-
-## Usage
-
 ### After Launch
 1. Open http://localhost:8501 in your browser  
 2. Paste song lyrics into the input area  
