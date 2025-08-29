@@ -73,13 +73,7 @@ Download the pre-trained checkpoint from the following link and place it inside 
 The download may come as a **zip archive**. After downloading:  
 1. Unzip the archive  
 2. Create a folder named `model/` inside the project directory (`LyricLens/`)  
-3. Copy the all files from the unzipped folder into `LyricLens/model/`:  
-- `model.safetensors` (model weights)  
-- `config.json` (model configuration)  
-- `tokenizer_config.json` (tokenizer configuration)  
-- `vocab.json` (vocabulary mappings)  
-- `merges.txt` (BPE merges)  
-- `special_tokens_map.json` (special tokens) 
+3. Copy the all files from the unzipped folder into `LyricLens/model/` 
 
 ### Step 4: Launch the application
 
